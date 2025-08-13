@@ -4,7 +4,10 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
 	"time"
+
+	mongoClient "github.com/amorindev/go-tmpl/internal/mongo"
 )
 
 type HttpServer struct {
@@ -13,6 +16,21 @@ type HttpServer struct {
 
 func NewHttpServer(port string) *HttpServer {
 	mux := http.NewServeMux()
+
+	// * MongoDB
+	dbURI := os.Getenv("MONGO_DB_URI")
+	if dbURI == "" {
+		log.Fatal("missing required environment variable: MONGO_DB_URI")
+	}
+
+	dbName := os.Getenv("MONGO_INITDB_DATABASE")
+	if dbName == "" {
+		log.Fatal("missing required environment variable: DB_NAME")
+	}
+
+	mongoConn := mongoClient.New(dbURI)
+	mongoConn.DB.Database(dbName)
+	mongoConn.Ping()
 
 	mux.HandleFunc("GET /ping", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
