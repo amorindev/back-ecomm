@@ -8,6 +8,9 @@ import (
 	"time"
 
 	mongoClient "github.com/amorindev/go-tmpl/internal/mongo"
+	"github.com/amorindev/go-tmpl/pkg/app/auth-methods/handler"
+	authMethodService "github.com/amorindev/go-tmpl/pkg/app/auth-methods/service"
+	userRepository "github.com/amorindev/go-tmpl/pkg/app/users/repository/mongo"
 )
 
 type HttpServer struct {
@@ -29,8 +32,26 @@ func NewHttpServer(port string) *HttpServer {
 	}
 
 	mongoConn := mongoClient.New(dbURI)
-	mongoConn.DB.Database(dbName)
+	mongoDB := mongoConn.DB.Database(dbName)
 	mongoConn.Ping()
+
+	// * Collections
+	userColl := mongoDB.Collection("users")
+
+	// * Repositories and indexes
+	userRepo := userRepository.NewUserRepo(mongoConn.DB, userColl)
+
+	// * Indexes
+	err := userRepo.CreateIndexes()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// * Services
+	authMethodSrv := authMethodService.NewAuthMethodSrv(userRepo)
+
+	// * Handler
+	handler.NewAuthMethodHandler(mux, authMethodSrv)
 
 	mux.HandleFunc("GET /ping", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
