@@ -6,21 +6,6 @@ import (
 	"log"
 )
 
-const (
-    ErrCodeDuplicateKey        = "duplicate_key"
-	ErrCodeInternalServerError = "internal_server_error"
-	ErrCodeInvalidParams       = "invalid_params"
-	ErrCodeNotFound            = "not_found"
-	ErrCodeTimeout             = "timeout"
-)
-
-var (
-	ErrDuplicateKey = errors.New("duplicate key error")
-	ErrIncorrectID  = errors.New("incorrect id error")
-	ErrNotFound     = errors.New("record not found error")
-	ErrTimeout      = errors.New("timeout error")
-)
-
 // AppError is a custom error type that implements the error interface
 type AppError struct {
 	Code string `json:"code"`
@@ -68,6 +53,49 @@ func ManageError(err error, msg string) error {
 			Code: ErrCodeTimeout,
 			Msg:  "Timeout",
 		}
+	case errors.Is(err, ErrTokenExpired):
+		log.Println("token expired")
+		appErr = AppError{
+			Code: ErrCodeUnauthorized,
+			Msg:  "Token expired",
+		}
+	case errors.Is(err, ErrTokenSignature):
+		log.Println("invalid token signature")
+		appErr = AppError{
+			Code: ErrCodeUnauthorized,
+			Msg:  "Invalid token signature",
+		}
+	case errors.Is(err, ErrTokenMalformed):
+		log.Println("malformed token")
+		appErr = AppError{
+			Code: ErrCodeInvalidParams,
+			Msg:  "Malformed token",
+		}
+	case errors.Is(err, ErrTokenInvalid):
+		log.Println("invalid token")
+		appErr = AppError{
+			Code: ErrCodeUnauthorized,
+			Msg:  "Invalid token",
+		}
+	case errors.Is(err, ErrTokenInvalidClaim):
+		log.Println("invalid token claims")
+		appErr = AppError{
+			Code: ErrCodeInvalidParams,
+			Msg:  "Invalid token claims",
+		}
+	case errors.Is(err, ErrAuthHeaderMissing):
+		log.Println("missing authorization header")
+		appErr = AppError{
+			Code: ErrCodeUnauthorized,
+			Msg:  "Authorization header is required",
+		}
+	case errors.Is(err, ErrAuthHeaderInvalid):
+		log.Println("invalid authorization header format")
+		appErr = AppError{
+			Code: ErrCodeUnauthorized,
+			Msg:  "invalid authorization header format",
+		}
+
 	default:
 		log.Println(err.Error())
 		appErr = AppError{
