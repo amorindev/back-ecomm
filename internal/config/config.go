@@ -8,6 +8,10 @@ import (
 )
 
 type Config struct {
+	// MongoDB
+	MongoDBUri  string
+	MongoInitDB string
+
 	// Jwt
 	JWTAccessSecret           string
 	JWTRefreshSecret          string
@@ -24,6 +28,10 @@ type Config struct {
 }
 
 func Load() *Config {
+	// Mongo DB
+	mongoInitDB := cmp.Or(os.Getenv("MONGO_INITDB_DATABASE"), "auth-tmpl")
+
+	// Auth - tokens
 	accessExp := cmp.Or(os.Getenv("JWT_ACCESS_EXP_IN"), "15m")
 	refreshExp := cmp.Or(os.Getenv("JWT_REFRESH_EXP_IN"), "168h")
 	refreshExpRememberMe := cmp.Or(os.Getenv("JWT_REFRESH_EXP_IN_REMEMBER"), "720h")
@@ -43,10 +51,13 @@ func Load() *Config {
 		log.Fatalf("Invalid JWT_REFRESH_EXP_IN_REMEMBER format: %v", err)
 	}
 
+	// App
 	port := cmp.Or(os.Getenv("HTTP_SERVER_PORT"), "8000")
 	apiBaseUrl := cmp.Or(os.Getenv("API_BASE_URL"), "http://localhost:"+port)
 
 	return &Config{
+		MongoDBUri:                mustGetEnv("MONGO_DB_URI"),
+		MongoInitDB:               mongoInitDB,
 		JWTAccessSecret:           mustGetEnv("JWT_ACCESS_TOKEN"),
 		JWTRefreshSecret:          mustGetEnv("JWT_REFRESH_TOKEN"),
 		JWTIssuer:                 mustGetEnv("JWT_ISS"),
