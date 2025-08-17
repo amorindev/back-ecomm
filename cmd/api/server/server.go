@@ -7,8 +7,10 @@ import (
 	"os"
 	"time"
 
+	"github.com/amorindev/go-tmpl/internal/config"
 	mongoClient "github.com/amorindev/go-tmpl/internal/mongo"
-	"github.com/amorindev/go-tmpl/pkg/app/auth-methods/handler"
+	"github.com/amorindev/go-tmpl/pkg/app/admin/api/handler"
+	authMethodHandler "github.com/amorindev/go-tmpl/pkg/app/auth-methods/handler"
 	authMethodService "github.com/amorindev/go-tmpl/pkg/app/auth-methods/service"
 	userRepository "github.com/amorindev/go-tmpl/pkg/app/users/repository/mongo"
 )
@@ -19,6 +21,8 @@ type HttpServer struct {
 
 func NewHttpServer(port string) *HttpServer {
 	mux := http.NewServeMux()
+
+	appEnvs := config.Load()
 
 	// * MongoDB
 	dbURI := os.Getenv("MONGO_DB_URI")
@@ -51,7 +55,7 @@ func NewHttpServer(port string) *HttpServer {
 	authMethodSrv := authMethodService.NewAuthMethodSrv(userRepo)
 
 	// * Handler
-	handler.NewAuthMethodHandler(mux, authMethodSrv)
+	authMethodHandler.NewAuthMethodHandler(mux, authMethodSrv)
 
 	mux.HandleFunc("GET /ping", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -63,6 +67,12 @@ func NewHttpServer(port string) *HttpServer {
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(resp)
 	})
+
+	mux.HandleFunc("/admin", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/admin/home", http.StatusFound)
+	})
+
+	handler.NewAdminHandler(mux, appEnvs.ApiBaseUrl)
 
 	server := &http.Server{
 		Addr:         ":" + port,

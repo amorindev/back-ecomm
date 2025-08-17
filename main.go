@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cmp"
 	"log"
 	"os"
 
@@ -14,10 +15,7 @@ func main() {
 		log.Fatalf("Failed to load .env file: %v", err)
 	}
 
-	hsp := os.Getenv("HTTP_SERVER_PORT")
-	if hsp == "" {
-		log.Fatal("environment variable HTTP_SERVER_PORT is not set ")
-	}
+	hsp := cmp.Or(os.Getenv("HTTP_SERVER_PORT"), "8000")
 
 	httpSrv := server.NewHttpServer(hsp)
 	httpSrv.Start()
