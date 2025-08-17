@@ -8,13 +8,19 @@ import (
 )
 
 type Config struct {
-	// * Jwt
+	// Jwt
 	JWTAccessSecret           string
 	JWTRefreshSecret          string
 	JWTIssuer                 string
 	JWTAccessExpIn            time.Duration
 	JWTRefreshExpIn           time.Duration
 	JWTRefreshRememberMeExpIn time.Duration
+
+	// App
+	Port string
+
+	// Templates
+	ApiBaseUrl string
 }
 
 func Load() *Config {
@@ -37,6 +43,9 @@ func Load() *Config {
 		log.Fatalf("Invalid JWT_REFRESH_EXP_IN_REMEMBER format: %v", err)
 	}
 
+	port := cmp.Or(os.Getenv("HTTP_SERVER_PORT"), "8000")
+	apiBaseUrl := cmp.Or(os.Getenv("API_BASE_URL"), "http://localhost:"+port)
+
 	return &Config{
 		JWTAccessSecret:           mustGetEnv("JWT_ACCESS_TOKEN"),
 		JWTRefreshSecret:          mustGetEnv("JWT_REFRESH_TOKEN"),
@@ -44,6 +53,8 @@ func Load() *Config {
 		JWTAccessExpIn:            accessDur,
 		JWTRefreshExpIn:           refreshDur,
 		JWTRefreshRememberMeExpIn: refreshRememberMeDur,
+		Port:                      port,
+		ApiBaseUrl:                apiBaseUrl,
 	}
 }
 
