@@ -3,7 +3,7 @@ version: "3.9"
 services:
   mongodb:
     image: mongo:8
-    container_name: go_tmpl_db
+    container_name: go_ecomm_db
     restart: unless-stopped
     environment:
       - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
