@@ -7,9 +7,12 @@ import (
 
 	"github.com/amorindev/go-tmpl/internal/config"
 	mongoClient "github.com/amorindev/go-tmpl/internal/mongo"
-	"github.com/amorindev/go-tmpl/pkg/app/admin/api/handler"
+	adminHandler "github.com/amorindev/go-tmpl/pkg/app/admin/api/handler"
 	authMethodHandler "github.com/amorindev/go-tmpl/pkg/app/auth-methods/handler"
 	authMethodService "github.com/amorindev/go-tmpl/pkg/app/auth-methods/service"
+	categoryHandler "github.com/amorindev/go-tmpl/pkg/app/ecomm/category/api/handler"
+	categoryRepository "github.com/amorindev/go-tmpl/pkg/app/ecomm/category/repository/mongo"
+	categoryService "github.com/amorindev/go-tmpl/pkg/app/ecomm/category/service"
 	userRepository "github.com/amorindev/go-tmpl/pkg/app/users/repository/mongo"
 )
 
@@ -29,9 +32,11 @@ func New() http.Handler {
 
 	// Collections
 	userColl := mongoDB.Collection("users")
+	categoryColl := mongoDB.Collection("categories")
 
 	// Repositories
 	userRepo := userRepository.NewUserRepo(mongoConn.DB, userColl)
+	categoryRepo := categoryRepository.NewCategoryRepo(mongoConn.DB, categoryColl)
 
 	// Indexes
 	err := userRepo.CreateIndexes()
@@ -41,10 +46,12 @@ func New() http.Handler {
 
 	// Services
 	authMethodSrv := authMethodService.NewAuthMethodSrv(userRepo)
+	categorySrv := categoryService.NewCategorySrv(categoryRepo)
 
 	// Handler
 	// Note: all subsequent handlers should also be registered using v1
 	authMethodHandler.NewAuthMethodHandler(v1, authMethodSrv)
+	categoryHandler.NewCategoryHandler(v1, categorySrv)
 
 	mux.HandleFunc("GET /ping", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -60,10 +67,10 @@ func New() http.Handler {
 	// Templates
 	// Redirects requests from "/admin" to the admin home page under API v1
 	mux.HandleFunc("/admin", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "/v1/admin/home", http.StatusFound)
+		http.Redirect(w, r, "/v1/admin/categories", http.StatusFound)
 	})
 
-	handler.NewAdminHandler(v1, appEnvs.ApiBaseUrl)
+	adminHandler.NewAdminHandler(v1, appEnvs.ApiBaseUrl)
 
 	return mux
 }
