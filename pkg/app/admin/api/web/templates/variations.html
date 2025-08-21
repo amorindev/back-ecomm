@@ -1,0 +1,315 @@
+{{ define "title"}} Variations {{end}} {{ define "content"}}
+
+<style>
+  #msg {
+    margin-bottom: 1rem;
+  }
+
+  .table-container {
+    margin-top: 2rem;
+  } 
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0.5rem;
+  }
+
+  th,
+  td {
+    padding: 8px;
+    border: 1px solid #1f2937;
+    text-align: left;
+  }
+
+  th {
+    background: #f4f4f4;
+  }
+
+  tr:nth-child(even) {
+    background: #f9f9f9;
+  }
+
+  tr:hover {
+    background: #f1f1f1;
+  }
+
+  button {
+    margin: 2px;
+    padding: 4px 8px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  button:hover {
+    opacity: 0.9;
+  }
+
+  button[onclick^="showModal('variation')"] {
+    background-color: #2563eb;
+    color: white;
+  }
+
+  button[onclick^="deleteVariation"] {
+    background-color: #dc2626;
+    color: white;
+  }
+
+  button[onclick^="deleteOption"] {
+    background-color: #dc2626;
+    color: white;
+  }
+
+  button[onclick^="showModal('option')"] {
+    background-color: #2563eb;
+    color: white;
+  }
+
+  button[onclick^="showModal('variation','"] {
+    background-color: #f59e0b;
+    color: white;
+  }
+
+  button[onclick^="showModal('option','"] {
+    background-color: #f59e0b;
+    color: white;
+  }
+
+  #modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    justify-content: center;
+    align-items: center;
+  }
+
+  #modal form {
+    background: #fff;
+    padding: 1rem;
+    border-radius: 8px;
+    width: 300px;
+  }
+</style>
+
+<div id="msg"></div>
+
+<button onclick="showModal('variation')">➕ Add Variation</button>
+<div id="variations-container"></div>
+
+<div id="modal">
+  <form id="modal-form">
+    <h3 id="modal-title"></h3>
+    <input type="hidden" id="variation-id" />
+    <input type="hidden" id="option-id" />
+    <div>
+      <label>Name/Label:</label>
+      <input type="text" id="name" required />
+    </div>
+    <div id="value-container">
+      <label>Value:</label>
+      <input type="text" id="value" />
+    </div>
+    <button type="submit">Save</button>
+    <button type="button" onclick="closeModal()">Cancel</button>
+  </form>
+</div>
+
+<script>
+  const API = `${API_BASE}/v1/variations`;
+  const modal = document.getElementById("modal");
+  const form = document.getElementById("modal-form");
+  const container = document.getElementById("variations-container");
+
+  async function fetchVariations() {
+    const msg = document.getElementById("msg");
+    msg.textContent = "Loading...";
+    msg.style.color = "black";
+
+    try {
+      const res = await fetch(`${API}/options`);
+      if (!res.ok) throw new Error("error getting variations");
+      const variations = await res.json();
+      renderVariations(variations);
+      msg.textContent = "";
+    } catch (err) {
+      msg.textContent = err.message;
+      msg.style.color = "red";
+    }
+  }
+
+  async function fetchVariations() {
+    const msg = document.getElementById("msg");
+    msg.textContent = "Loading...";
+    msg.style.color = "black";
+
+    try {
+      const res = await fetch(`${API}/options`);
+      if (!res.ok) throw new Error("error getting variations");
+      const variations = await res.json();
+      renderVariations(variations);
+      msg.textContent = "";
+    } catch (err) {
+      msg.textContent = err.message;
+      msg.style.color = "red";
+    }
+  }
+
+  function renderVariations(variations) {
+    container.innerHTML = "";
+
+    if (!Array.isArray(variations) || variations.length === 0) {
+      const table = document.createElement("table");
+      table.innerHTML = `
+      <thead><tr><th>Name</th><th>Options</th><th>Actions</th></tr></thead>
+      <tbody>
+        <tr><td colspan="3" style="text-align:center;">No variations found</td></tr>
+      </tbody>`;
+      const wrapper = document.createElement("div");
+      wrapper.className = "table-container";
+      wrapper.appendChild(table);
+      container.appendChild(wrapper);
+      return;
+    }
+
+    variations.forEach((v) => {
+      const table = document.createElement("table");
+      table.innerHTML = `
+      <thead>
+        <tr>
+          <th colspan="3" style="text-align:left;">
+            ${v.name}
+            <span style="float:right;">
+              <button onclick="showModal('variation','${v.id}')">✏️ Update</button>
+              <button onclick="deleteVariation('${v.id}')">🗑️ Delete</button>
+              <button onclick="showModal('option','${v.id}')">➕ Add Option</button>
+            </span>
+          </th>
+        </tr>
+        <tr>
+          <th style="width:40%;">Label</th>
+          <th style="width:40%;">Value</th>
+          <th style="width:20%; text-align:right;">Actions</th>
+        </tr>
+      </thead>`;
+
+      const tbody = document.createElement("tbody");
+
+      if (!v.options || v.options.length === 0) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td colspan="3" style="text-align:center;">No options found</td>`;
+        tbody.appendChild(tr);
+      } else {
+        v.options.forEach((o) => {
+          const tr = document.createElement("tr");
+          tr.dataset.id = o.id;
+          tr.innerHTML = `
+          <td style="width:40%;">${o.label}</td>
+          <td style="width:40%;">${o.value || "—"}</td>
+          <td style="width:20%; text-align:right;">
+            <button onclick="showModal('option','${v.id}','${
+            o.id
+          }')">✏️ Update</button>
+            <button onclick="deleteOption('${v.id}','${
+            o.id
+          }')">🗑️ Delete</button>
+          </td>`;
+          tbody.appendChild(tr);
+        });
+      }
+
+      table.appendChild(tbody);
+      const wrapper = document.createElement("div");
+      wrapper.className = "table-container";
+      wrapper.appendChild(table);
+      container.appendChild(wrapper);
+    });
+  }
+
+  function showModal(type, variationId = null, optionId = null) {
+    modal.style.display = "flex";
+    document.getElementById("variation-id").value = variationId || "";
+    document.getElementById("option-id").value = optionId || "";
+    document.getElementById("modal-title").innerText = optionId
+      ? "Update Option"
+      : variationId && type === "option"
+      ? "Add Option"
+      : variationId
+      ? "Update Variation"
+      : "Add Variation";
+    document.getElementById("value-container").style.display =
+      type === "option" ? "block" : "none";
+  }
+
+  function closeModal() {
+    modal.style.display = "none";
+    form.reset();
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const variationId = document.getElementById("variation-id").value;
+    const optionId = document.getElementById("option-id").value;
+    const name = document.getElementById("name").value;
+    const value = document.getElementById("value").value || null;
+
+    try {
+      let res;
+      if (optionId) {
+        res = await fetch(`${API}/${variationId}/options/${optionId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ label: name, value }),
+        });
+      } else if (
+        variationId &&
+        document.getElementById("value-container").style.display === "block"
+      ) {
+        res = await fetch(`${API}/${variationId}/options`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ label: name, value }),
+        });
+      } else if (variationId) {
+        res = await fetch(`${API}/${variationId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name }),
+        });
+      } else {
+        res = await fetch(API, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name }),
+        });
+      }
+
+      if (!res.ok) throw new Error("error saving variation");
+      closeModal();
+      fetchVariations();
+    } catch (err) {
+      alert(err.message);
+    }
+  });
+
+  async function deleteVariation(id) {
+    if (!confirm("Are you sure you want to delete this variation?")) return;
+    await fetch(`${API}/${id}`, { method: "DELETE" });
+    fetchVariations();
+  }
+
+  async function deleteOption(variationId, optionId) {
+    if (!confirm("Are you sure you want to delete this option?")) return;
+    await fetch(`${API}/${variationId}/options/${optionId}`, {
+      method: "DELETE",
+    });
+    fetchVariations();
+  }
+
+  fetchVariations();
+</script>
+{{ end }}

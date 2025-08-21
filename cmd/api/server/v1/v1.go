@@ -13,6 +13,10 @@ import (
 	categoryHandler "github.com/amorindev/go-tmpl/pkg/app/ecomm/category/api/handler"
 	categoryRepository "github.com/amorindev/go-tmpl/pkg/app/ecomm/category/repository/mongo"
 	categoryService "github.com/amorindev/go-tmpl/pkg/app/ecomm/category/service"
+	variationHandler "github.com/amorindev/go-tmpl/pkg/app/ecomm/variations/api/handler"
+	varOptionRepository "github.com/amorindev/go-tmpl/pkg/app/ecomm/variations/repository/var-option/mongo"
+	variationRepository "github.com/amorindev/go-tmpl/pkg/app/ecomm/variations/repository/variation/mongo"
+	variationService "github.com/amorindev/go-tmpl/pkg/app/ecomm/variations/service"
 	userRepository "github.com/amorindev/go-tmpl/pkg/app/users/repository/mongo"
 )
 
@@ -33,10 +37,14 @@ func New() http.Handler {
 	// Collections
 	userColl := mongoDB.Collection("users")
 	categoryColl := mongoDB.Collection("categories")
+	variationColl := mongoDB.Collection("variations")
+	varOptionColl := mongoDB.Collection("var_options")
 
 	// Repositories
 	userRepo := userRepository.NewUserRepo(mongoConn.DB, userColl)
 	categoryRepo := categoryRepository.NewCategoryRepo(mongoConn.DB, categoryColl)
+	variationRepo := variationRepository.NewVariationRepo(mongoConn.DB, variationColl)
+	varOptionRepo := varOptionRepository.NewVarOptionRepo(mongoConn.DB, varOptionColl)
 
 	// Indexes
 	err := userRepo.CreateIndexes()
@@ -47,11 +55,13 @@ func New() http.Handler {
 	// Services
 	authMethodSrv := authMethodService.NewAuthMethodSrv(userRepo)
 	categorySrv := categoryService.NewCategorySrv(categoryRepo)
+	variationSrv := variationService.NewVariationSrv(variationRepo, varOptionRepo)
 
 	// Handler
 	// Note: all subsequent handlers should also be registered using v1
 	authMethodHandler.NewAuthMethodHandler(v1, authMethodSrv)
 	categoryHandler.NewCategoryHandler(v1, categorySrv)
+	variationHandler.NewVariationHandler(v1, variationSrv)
 
 	mux.HandleFunc("GET /ping", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
