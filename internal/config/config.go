@@ -12,6 +12,13 @@ type Config struct {
 	MongoDBUri  string
 	MongoInitDB string
 
+	// Minio
+	MinioEndpoint   string
+	MinioAccessKey  string
+	MinioSecretKey  string
+	MinioUseSSL     bool
+	MinioBucketName string
+
 	// Jwt
 	JWTAccessSecret           string
 	JWTRefreshSecret          string
@@ -30,6 +37,17 @@ type Config struct {
 func Load() *Config {
 	// Mongo DB
 	mongoInitDB := cmp.Or(os.Getenv("MONGO_INITDB_DATABASE"), "auth-tmpl")
+
+	// Minio
+	minioBucketName := cmp.Or(os.Getenv("MINIO_BUCKET_NAME"), "auth-tmpl")
+	useSSL := mustGetEnv("MINIO_SECURE")
+
+	var useSSLbool bool
+	if useSSL == "true" || useSSL == "yes" {
+		useSSLbool = true
+	} else {
+		useSSLbool = false
+	}
 
 	// Auth - tokens
 	accessExp := cmp.Or(os.Getenv("JWT_ACCESS_EXP_IN"), "15m")
@@ -58,6 +76,11 @@ func Load() *Config {
 	return &Config{
 		MongoDBUri:                mustGetEnv("MONGO_DB_URI"),
 		MongoInitDB:               mongoInitDB,
+		MinioEndpoint:             mustGetEnv("MINIO_ENDPOINT"),
+		MinioAccessKey:            mustGetEnv("MINIO_ACCESS_KEY"),
+		MinioSecretKey:            mustGetEnv("MINIO_SECRET_KEY"),
+		MinioUseSSL:               useSSLbool,
+		MinioBucketName:           minioBucketName,
 		JWTAccessSecret:           mustGetEnv("JWT_ACCESS_TOKEN"),
 		JWTRefreshSecret:          mustGetEnv("JWT_REFRESH_TOKEN"),
 		JWTIssuer:                 mustGetEnv("JWT_ISS"),
