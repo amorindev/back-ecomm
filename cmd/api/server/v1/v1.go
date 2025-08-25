@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/amorindev/go-tmpl/internal/config"
+	minioClient "github.com/amorindev/go-tmpl/internal/minio"
 	mongoClient "github.com/amorindev/go-tmpl/internal/mongo"
 	adminHandler "github.com/amorindev/go-tmpl/pkg/app/admin/api/handler"
 	authMethodHandler "github.com/amorindev/go-tmpl/pkg/app/auth-methods/handler"
@@ -18,6 +19,8 @@ import (
 	variationRepository "github.com/amorindev/go-tmpl/pkg/app/ecomm/variations/repository/variation/mongo"
 	variationService "github.com/amorindev/go-tmpl/pkg/app/ecomm/variations/service"
 	userRepository "github.com/amorindev/go-tmpl/pkg/app/users/repository/mongo"
+	minioAdapter "github.com/amorindev/go-tmpl/pkg/file-storage/adapter/minio"
+	fileStgService "github.com/amorindev/go-tmpl/pkg/file-storage/service"
 )
 
 func New() http.Handler {
@@ -34,6 +37,20 @@ func New() http.Handler {
 	mongoDB := mongoConn.DB.Database(appEnvs.MongoInitDB)
 	mongoConn.Ping()
 
+	// Minio
+	minioC, err := minioClient.NewClient(appEnvs.MinioEndpoint, appEnvs.MinioAccessKey, appEnvs.MinioSecretKey, appEnvs.MinioUseSSL)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = minioC.CreateStorage(appEnvs.MinioBucketName)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	minioApt := minioAdapter.NewMinioAdt(minioC.Client, appEnvs.MinioBucketName)
+	_ = fileStgService.NewFileStgSrv(minioApt)
+
 	// Collections
 	userColl := mongoDB.Collection("users")
 	categoryColl := mongoDB.Collection("categories")
@@ -47,7 +64,7 @@ func New() http.Handler {
 	varOptionRepo := varOptionRepository.NewVarOptionRepo(mongoConn.DB, varOptionColl)
 
 	// Indexes
-	err := userRepo.CreateIndexes()
+	err = userRepo.CreateIndexes()
 	if err != nil {
 		log.Fatal(err)
 	}
