@@ -11,6 +11,7 @@ func NewAdminHandler(mux *http.ServeMux, apiBaseUrl string) *Handler {
 		ApiBaseUrl: apiBaseUrl,
 	}
 
+
 	// Templates
 	//mux.HandleFunc("/admin/home", h.HomePage)
 	//mux.HandleFunc("/admin/other", h.OtherPage)
