@@ -17,6 +17,7 @@ func NewAdminHandler(mux *http.ServeMux, apiBaseUrl string) *Handler {
 	//mux.HandleFunc("/admin/other", h.OtherPage)
 	mux.HandleFunc("/admin/categories", h.CategoriesPage)
 	mux.HandleFunc("/admin/variations", h.VariationsPage)
+	mux.HandleFunc("/admin/products", h.ProductsPage)
 
 	return h
 }
