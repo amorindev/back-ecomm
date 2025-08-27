@@ -14,6 +14,9 @@ import (
 	categoryHandler "github.com/amorindev/go-tmpl/pkg/app/ecomm/category/api/handler"
 	categoryRepository "github.com/amorindev/go-tmpl/pkg/app/ecomm/category/repository/mongo"
 	categoryService "github.com/amorindev/go-tmpl/pkg/app/ecomm/category/service"
+	productHandler "github.com/amorindev/go-tmpl/pkg/app/ecomm/products/api/handler"
+	productRepository "github.com/amorindev/go-tmpl/pkg/app/ecomm/products/repository/mongo"
+	productService "github.com/amorindev/go-tmpl/pkg/app/ecomm/products/service"
 	variationHandler "github.com/amorindev/go-tmpl/pkg/app/ecomm/variations/api/handler"
 	varOptionRepository "github.com/amorindev/go-tmpl/pkg/app/ecomm/variations/repository/var-option/mongo"
 	variationRepository "github.com/amorindev/go-tmpl/pkg/app/ecomm/variations/repository/variation/mongo"
@@ -49,22 +52,28 @@ func New() http.Handler {
 	}
 
 	minioApt := minioAdapter.NewMinioAdt(minioC.Client, appEnvs.MinioBucketName)
-	_ = fileStgService.NewFileStgSrv(minioApt)
+	fileStgSrv := fileStgService.NewFileStgSrv(minioApt)
 
 	// Collections
 	userColl := mongoDB.Collection("users")
 	categoryColl := mongoDB.Collection("categories")
 	variationColl := mongoDB.Collection("variations")
 	varOptionColl := mongoDB.Collection("var_options")
+	productColl := mongoDB.Collection("products")
 
 	// Repositories
 	userRepo := userRepository.NewUserRepo(mongoConn.DB, userColl)
 	categoryRepo := categoryRepository.NewCategoryRepo(mongoConn.DB, categoryColl)
 	variationRepo := variationRepository.NewVariationRepo(mongoConn.DB, variationColl)
 	varOptionRepo := varOptionRepository.NewVarOptionRepo(mongoConn.DB, varOptionColl)
+	productRepo := productRepository.NewProductRepo(mongoConn.DB, productColl)
 
 	// Indexes
 	err = userRepo.CreateIndexes()
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = productRepo.CreateIndexes()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -73,12 +82,14 @@ func New() http.Handler {
 	authMethodSrv := authMethodService.NewAuthMethodSrv(userRepo)
 	categorySrv := categoryService.NewCategorySrv(categoryRepo)
 	variationSrv := variationService.NewVariationSrv(variationRepo, varOptionRepo)
+	productSrv := productService.NewProductSrv(productRepo, varOptionRepo, categoryRepo, fileStgSrv)
 
 	// Handler
 	// Note: all subsequent handlers should also be registered using v1
 	authMethodHandler.NewAuthMethodHandler(v1, authMethodSrv)
 	categoryHandler.NewCategoryHandler(v1, categorySrv)
 	variationHandler.NewVariationHandler(v1, variationSrv)
+	productHandler.NewProductHandler(v1, productSrv)
 
 	mux.HandleFunc("GET /ping", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

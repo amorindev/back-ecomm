@@ -17,6 +17,7 @@ type VarOptionRepo interface {
 	Insert(ctx context.Context, varOption *domain.VarOption) error
 	Update(ctx context.Context, varOption *domain.VarOption) error
 	Delete(ctx context.Context, id string, variationID string) error
+	FindByIDs(ctx context.Context,ids []string) ([]*domain.VarOption,error)
 }
 
 type VariationSrv interface {
