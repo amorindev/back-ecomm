@@ -269,9 +269,9 @@
 <script>
   let variationsData = [];
 
-  const API_PRODUCTS = "http://localhost:8000/v1/products";
-  const API_CATEGORIES = "http://localhost:8000/v1/categories";
-  const API_VARIATIONS = "http://localhost:8000/v1/variations/options";
+  const API_PRODUCTS = `${API_BASE}/v1/products`;
+  const API_CATEGORIES = `${API_BASE}/v1/categories`;
+  const API_VARIATIONS = `${API_BASE}/v1/variations/options`;
 
   // Modal controls
   function openProductModal(id = "", name = "", desc = "", category_id = "") {
