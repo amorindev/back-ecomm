@@ -302,7 +302,9 @@
       const res = await fetch(API_CATEGORIES);
       if (!res.ok) throw new Error("Error loading categories");
 
-      const categories = await res.json();
+      const data = await res.json();
+      const categories = Array.isArray(data) ? data.categories : [];
+
       const select = document.getElementById("categorySelect");
       select.innerHTML = "<option value=''>-- select --</option>";
 
@@ -313,7 +315,7 @@
         select.appendChild(opt);
       });
     } catch (err) {
-      alert(err.message);
+      alert("error getting categories: " + err.message);
     }
   }
 
@@ -323,7 +325,7 @@
       if (!res.ok) throw new Error("Error loading variations");
       variationsData = await res.json();
     } catch (err) {
-      alert(err.message);
+      alert("error getting variations: " + err.message);
     }
   }
 
