@@ -95,8 +95,11 @@
       <div class="sidebar">
         <h1>Admin Panel</h1>
         <nav>
-          <a href="/v1/admin/home" class="{{if eq .ActivePage "home"}}active{{end}}">Home</a>
-          <a href="/v1/admin/other" class="{{if eq .ActivePage "other"}}active{{end}}">Other</a>
+          <!-- <a href="/v1/admin/home" class="{{if eq .ActivePage "home"}}active{{end}}">Home</a> -->
+          <!-- <a href="/v1/admin/other" class="{{if eq .ActivePage "other"}}active{{end}}">Other</a> -->
+          <a href="/v1/admin/categories" class="{{if eq .ActivePage "category"}}active{{end}}">Category</a>
+          <a href="/v1/admin/variations" class="{{if eq .ActivePage "variation"}}active{{end}}">Variations</a>
+          <a href="/v1/admin/products" class="{{if eq .ActivePage "product"}}active{{end}}">Products</a>
         </nav>
       </div>
       <div class="main">

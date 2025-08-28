@@ -1,0 +1,603 @@
+{{ define "title"}}Products{{end}} {{ define "content"}}
+
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #f7f8fa;
+    color: #1f2937;
+  }
+
+  button {
+    cursor: pointer;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    background: #3b82f6;
+    color: white;
+    font-size: 0.9rem;
+    transition: 0.2s;
+  }
+
+  button:hover {
+    background: #2563eb;
+  }
+
+  .modal {
+    display: none;
+    position: fixed;
+    z-index: 999;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background: rgba(0, 0, 0, 0.4);
+  }
+
+  .modal-content {
+    background: white;
+    margin: 3% auto;
+    padding: 25px;
+    border-radius: 12px;
+    width: 80%;
+    max-width: 900px;
+    max-height: 90%;
+    overflow-y: auto;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    animation: slideDown 0.3s ease-out;
+  }
+
+  @keyframes slideDown {
+    from {
+      transform: translateY(-20px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 8px;
+  }
+
+  label {
+    display: block;
+    margin-top: 12px;
+    font-weight: bold;
+  }
+
+  input[type="text"],
+  input[type="number"],
+  textarea,
+  select {
+    width: 100%;
+    padding: 8px;
+    margin-top: 4px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 0.9rem;
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 60px;
+  }
+
+  table#products {
+    margin-top: 1.5rem;
+    border-collapse: collapse;
+    width: 100%;
+    background: white;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  table#products th,
+  table#products td {
+    border-bottom: 1px solid #e5e7eb;
+    padding: 10px 12px;
+  }
+
+  table#products th {
+    background: #f3f4f6;
+    text-align: left;
+    font-weight: 600;
+  }
+
+  table#products tr:nth-child(even) {
+    background: #f9fafb;
+  }
+
+  table#products tr:hover {
+    background: #e5e7eb;
+  }
+
+  .hidden {
+    display: none;
+  }
+
+  #msg {
+    margin-bottom: 12px;
+    font-weight: 500;
+  }
+
+  #productForm button[type="submit"] {
+    margin-right: 8px;
+    background: #10b981;
+  }
+
+  #productForm button[type="submit"]:hover {
+    background: #059669;
+  }
+
+  #productForm button[type="button"] {
+    background: #ef4444;
+  }
+
+  #productForm button[type="button"]:hover {
+    background: #b91c1c;
+  }
+
+  #items table,
+  #items th,
+  #items td {
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  #items th,
+  #items td {
+    padding: 6px 8px;
+    font-size: 0.9rem;
+  }
+
+  #imgModal .modal-content {
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  }
+
+  input[type="file"] {
+    padding: 3px;
+  }
+</style>
+
+<div id="msg"></div>
+<button onclick="openProductModal()">➕ Add Product</button>
+
+<!-- Modal -->
+<div id="productModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="modal-title">Add Product</h3>
+      <button onclick="closeProductModal()">❌</button>
+    </div>
+
+    <form id="productForm" enctype="multipart/form-data">
+      <input type="hidden" id="prod-id" name="id" />
+
+      <label>Name:</label>
+      <input type="text" name="name" id="prod-name" required />
+
+      <label>Description:</label>
+      <textarea name="desc" id="prod-desc"></textarea>
+
+      <label>Category:</label>
+      <select name="category_id" id="categorySelect"></select>
+
+      <label>Main Image:</label>
+      <input type="file" name="main_image" id="prod-img" />
+
+      <!-- Toggle: Product Type -->
+      <label
+        ><input type="radio" name="has_variants" value="false" checked />
+        Product without variants</label
+      >
+      <label
+        ><input type="radio" name="has_variants" value="true" /> Product with
+        variants</label
+      >
+
+      <!-- Single Item Fields -->
+      <div id="single-item-fields">
+        <label>Price:</label>
+        <input
+          type="number"
+          step="0.01"
+          name="item_price"
+          id="single-price"
+          required
+        />
+        <label>Stock Quantity:</label>
+        <input type="number" name="item_qty" id="single-qty" required />
+      </div>
+
+      <!-- Variations -->
+      <div id="variants-fields" class="hidden">
+        <h3>Variations</h3>
+        <div id="variationContainer"></div>
+        <button type="button" onclick="addVariation()">Add Variation</button>
+      </div>
+
+      <!-- Items Table (only for variants) -->
+      <div id="items"></div>
+
+      <br />
+      <button type="submit">Save Product</button>
+      <button type="button" onclick="closeProductModal()">Cancel</button>
+    </form>
+  </div>
+</div>
+
+<!-- Products Table -->
+<table id="products">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Category</th>
+      <th>Image</th>
+      <th>Items</th>
+      <th>Created</th>
+      <th>Updated</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<!-- Image Modal -->
+<div id="imgModal" class="modal" onclick="closeImgModal()">
+  <div class="modal-content" style="max-width: 600px; text-align: center">
+    <img
+      id="imgPreview"
+      src=""
+      alt="Product"
+      style="max-width: 100%; border-radius: 8px"
+    />
+  </div>
+</div>
+
+<script>
+  let variationsData = [];
+
+  const API_PRODUCTS = "http://localhost:8000/v1/products";
+  const API_CATEGORIES = "http://localhost:8000/v1/categories";
+  const API_VARIATIONS = "http://localhost:8000/v1/variations/options";
+
+  // Modal controls
+  function openProductModal(id = "", name = "", desc = "", category_id = "") {
+    document.getElementById("modal-title").textContent = id
+      ? "Update Product"
+      : "Add Product";
+    document.getElementById("prod-id").value = id;
+    document.getElementById("prod-name").value = name;
+    document.getElementById("prod-desc").value = desc;
+    document.getElementById("categorySelect").value = category_id || "";
+    document.getElementById("productModal").style.display = "block";
+
+    document.querySelector(
+      "input[name='has_variants'][value='false']"
+    ).checked = true;
+    toggleProductType();
+  }
+
+  function closeProductModal() {
+    document.getElementById("productModal").style.display = "none";
+    document.getElementById("productForm").reset();
+    document.getElementById("variationContainer").innerHTML = "";
+    document.getElementById("items").innerHTML = "";
+  }
+
+  async function loadCategories() {
+    try {
+      const res = await fetch(API_CATEGORIES);
+      if (!res.ok) throw new Error("Error loading categories");
+
+      const categories = await res.json();
+      const select = document.getElementById("categorySelect");
+      select.innerHTML = "<option value=''>-- select --</option>";
+
+      categories.forEach((cat) => {
+        const opt = document.createElement("option");
+        opt.value = cat.id;
+        opt.textContent = cat.name;
+        select.appendChild(opt);
+      });
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  async function loadVariations() {
+    try {
+      const res = await fetch(API_VARIATIONS);
+      if (!res.ok) throw new Error("Error loading variations");
+      variationsData = await res.json();
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  function toggleProductType() {
+    const hasVariants =
+      document.querySelector("input[name='has_variants']:checked").value ===
+      "true";
+    document
+      .getElementById("single-item-fields")
+      .classList.toggle("hidden", hasVariants);
+    document
+      .getElementById("variants-fields")
+      .classList.toggle("hidden", !hasVariants);
+
+    if (!hasVariants) document.getElementById("items").innerHTML = "";
+  }
+
+  document
+    .querySelectorAll("input[name='has_variants']")
+    .forEach((r) => r.addEventListener("change", toggleProductType));
+
+  function addVariation() {
+    const container = document.getElementById("variationContainer");
+    const div = document.createElement("div");
+    let html = `<label>Select Variation:</label>
+              <select class="variationSelect">
+                <option value="">-- select --</option>`;
+    variationsData.forEach(
+      (v) => (html += `<option value="${v.id}">${v.name}</option>`)
+    );
+    html += `</select>
+           <div class="optionsBox"></div><br>`;
+    div.innerHTML = html;
+    container.appendChild(div);
+
+    div
+      .querySelector(".variationSelect")
+      .addEventListener("change", function () {
+        const variationId = this.value;
+        const variation = variationsData.find((v) => v.id === variationId);
+        const optionsBox = div.querySelector(".optionsBox");
+        optionsBox.innerHTML = "";
+        if (variation && variation.options) {
+          variation.options.forEach((opt) => {
+            optionsBox.innerHTML += `<label>
+          <input type="checkbox" data-variation="${variation.id}" value="${opt.id}" data-label="${opt.label}">${opt.label}
+        </label><br>`;
+          });
+        }
+        optionsBox.addEventListener("change", generateCombinations);
+      });
+  }
+
+  function generateCombinations() {
+    const selected = {};
+    document.querySelectorAll(".optionsBox").forEach((box) => {
+      box.querySelectorAll("input[type=checkbox]:checked").forEach((cb) => {
+        const vid = cb.dataset.variation;
+        if (!selected[vid]) selected[vid] = [];
+        selected[vid].push({ id: cb.value, label: cb.dataset.label });
+      });
+    });
+
+    const itemsDiv = document.getElementById("items");
+    itemsDiv.innerHTML = "";
+    if (Object.keys(selected).length === 0) return;
+
+    let combos = [[]];
+    for (let vId in selected) {
+      let opts = selected[vId];
+      let newCombos = [];
+      combos.forEach((c) => opts.forEach((opt) => newCombos.push([...c, opt])));
+      combos = newCombos;
+    }
+
+    let html = `<h3>Items</h3><table border="1" cellpadding="5"><thead><tr><th>Combination</th><th>Image</th><th>Price</th><th>Stock</th></tr></thead><tbody>`;
+    combos.forEach((combo, i) => {
+      const comboLabel = combo.map((c) => c.label).join(" / ");
+      const comboIds = combo.map((c) => c.id).join(",");
+      html += `<tr>
+      <td>${comboLabel}</td>
+      <td><input type="file" name="item_image_${i}"></td>
+      <td><input type="number" step="0.01" name="item_price_${i}" required></td>
+      <td><input type="number" name="item_qty_${i}" required></td>
+      <input type="hidden" name="item_options_${i}" value="${comboIds}">
+    </tr>`;
+    });
+    html += `</tbody></table>`;
+    itemsDiv.innerHTML = html;
+  }
+
+  function toggleProductType() {
+    const hasVariants =
+      document.querySelector("input[name='has_variants']:checked").value ===
+      "true";
+
+    const singleFields = document.getElementById("single-item-fields");
+    const variantFields = document.getElementById("variants-fields");
+
+    singleFields.classList.toggle("hidden", hasVariants);
+    variantFields.classList.toggle("hidden", !hasVariants);
+
+    // Habilitar/deshabilitar required
+    singleFields.querySelectorAll("input").forEach((inp) => {
+      if (hasVariants) inp.removeAttribute("required");
+      else inp.setAttribute("required", "true");
+    });
+
+    // Borro la tabla de items si es producto simple
+    if (!hasVariants) {
+      document.getElementById("items").innerHTML = "";
+    }
+  }
+
+  document
+    .getElementById("productForm")
+    .addEventListener("submit", async (e) => {
+      e.preventDefault();
+      try {
+        const form = e.target;
+        const formData = new FormData();
+        const hasVariants =
+          document.querySelector("input[name='has_variants']:checked").value ===
+          "true";
+
+        var desc = form.querySelector("#prod-desc").value;
+        if (desc == "") {
+          desc = null;
+        }
+
+        const product = {
+          name: form.querySelector("#prod-name").value,
+          desc: desc,
+          category_id: form.querySelector("#categorySelect").value,
+          file_path: form.querySelector("#prod-img").files[0]?.name || "",
+          product_items: [],
+        };
+
+        if (!hasVariants) {
+          product.product_items.push({
+            price: parseFloat(form.querySelector("#single-price").value),
+            qty_in_stock: parseInt(form.querySelector("#single-qty").value),
+            file_path: form.querySelector("#prod-img").files[0]?.name || "",
+            var_option_ids: [],
+          });
+          if (form.querySelector("#prod-img").files[0])
+            formData.append(
+              "item_image_0",
+              form.querySelector("#prod-img").files[0]
+            );
+        } else {
+          document
+            .querySelectorAll("#items table tbody tr")
+            .forEach((row, i) => {
+              product.product_items.push({
+                price: parseFloat(
+                  row.querySelector(`input[name=item_price_${i}]`).value
+                ),
+                qty_in_stock: parseInt(
+                  row.querySelector(`input[name=item_qty_${i}]`).value
+                ),
+                file_path:
+                  row.querySelector(`input[name=item_image_${i}]`).files[0]
+                    ?.name || "",
+                var_option_ids: row
+                  .querySelector(`input[name=item_options_${i}]`)
+                  .value.split(","),
+              });
+              const file = row.querySelector(`input[name=item_image_${i}]`)
+                .files[0];
+              if (file) formData.append(`item_image_${i}`, file);
+            });
+        }
+
+        if (form.querySelector("#prod-img").files[0])
+          formData.append(
+            "main_image",
+            form.querySelector("#prod-img").files[0]
+          );
+        formData.append("product", JSON.stringify(product));
+
+        const res = await fetch(API_PRODUCTS, {
+          method: "POST",
+          body: formData,
+        });
+        if (res.ok) {
+          alert("Product saved!");
+          loadProducts();
+          closeProductModal();
+        } else {
+          const errMsg = await res.json();
+          alert("Error saving: " + (errMsg.msg || JSON.stringify(errMsg)));
+        }
+      } catch (err) {
+        alert("Unexpected error: " + err.message);
+      }
+    });
+
+  async function deleteProduct(id) {
+    if (!confirm("Delete this product?")) return;
+    try {
+      const res = await fetch(`${API_PRODUCTS}/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const errMsg = await res.json().catch(() => ({}));
+        throw new Error(errMsg.msg || "Error deleting product");
+      }
+      alert("Product deleted!");
+      loadProducts();
+    } catch (err) {
+      alert("Unexpected error " + err.message);
+    }
+  }
+
+  function openImgModal(url) {
+    document.getElementById("imgPreview").src = url;
+    document.getElementById("imgModal").style.display = "block";
+  }
+  function closeImgModal() {
+    document.getElementById("imgModal").style.display = "none";
+  }
+
+  async function loadProducts() {
+    const msg = document.getElementById("msg");
+    msg.textContent = "Loading...";
+    msg.style.color = "black";
+    try {
+      const res = await fetch(`${API_PRODUCTS}`);
+      if (!res.ok) throw new Error("Error getting products");
+
+      const data = await res.json();
+      const tbody = document.querySelector("#products tbody");
+      tbody.innerHTML = "";
+
+      if (
+        !data.products ||
+        !Array.isArray(data.products) ||
+        data.products.length === 0
+      ) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">No products</td></tr>`;
+        msg.textContent = "";
+        return;
+      }
+
+      data.products.forEach((p) => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+        <td>${p.name}</td>
+        <td>${p.category_name || ""}</td>
+        <td>${
+          p.img_url
+            ? `<img src="${p.img_url}" alt="${p.name}" 
+                style="width:50px;height:50px;object-fit:cover;cursor:pointer;border-radius:6px;" 
+                onclick="openImgModal('${p.img_url}')"/>`
+            : "-"
+        }</td>
+        <td>${Array.isArray(p.product_items) ? p.product_items.length : 0}</td>
+        <td>${p.created_at}</td>
+        <td>${p.updated_at}</td>
+        <td><button onclick="deleteProduct('${p.id}')">🗑️ Delete</button></td>`;
+        tbody.appendChild(row);
+      });
+
+      msg.textContent = "";
+    } catch (err) {
+      msg.textContent = err.message;
+      msg.style.color = "red";
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", async () => {
+    await loadCategories();
+    await loadVariations();
+    await loadProducts();
+  });
+</script>
+
+{{ end }}

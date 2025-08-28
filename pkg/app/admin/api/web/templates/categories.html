@@ -1,0 +1,307 @@
+{{ define "title"}} Categories {{end}} {{ define "content"}}
+
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #f7f8fa;
+    color: #1f2937;
+  }
+
+  button {
+    cursor: pointer;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    background: #3b82f6;
+    color: white;
+    font-size: 0.9rem;
+    transition: 0.2s;
+  }
+
+  button:hover {
+    background: #2563eb;
+  }
+
+  /* Modal */
+  .modal {
+    display: none;
+    position: fixed;
+    z-index: 999;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background: rgba(0, 0, 0, 0.4);
+  }
+
+  .modal-content {
+    background: white;
+    margin: 5% auto;
+    padding: 25px;
+    border-radius: 12px;
+    width: 80%;
+    max-width: 600px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    animation: slideDown 0.3s ease-out;
+  }
+
+  @keyframes slideDown {
+    from {
+      transform: translateY(-20px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 8px;
+  }
+
+  label {
+    display: block;
+    margin-top: 12px;
+    font-weight: bold;
+  }
+
+  input[type="text"] {
+    width: 100%;
+    padding: 8px;
+    margin-top: 4px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 0.9rem;
+  }
+
+  /* Table */
+  table#categories {
+    margin-top: 1.5rem;
+    border-collapse: collapse;
+    width: 100%;
+    background: white;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  table#categories th,
+  table#categories td {
+    border-bottom: 1px solid #e5e7eb;
+    padding: 10px 12px;
+  }
+
+  table#categories th {
+    background: #f3f4f6;
+    text-align: left;
+    font-weight: 600;
+  }
+
+  table#categories tr:nth-child(even) {
+    background: #f9fafb;
+  }
+
+  table#categories tr:hover {
+    background: #e5e7eb;
+  }
+
+  .btn-edit {
+    background: #3b82f6;
+  }
+  .btn-edit:hover {
+    background: #2563eb;
+  }
+
+  .btn-delete {
+    background: #3b82f6;
+  }
+  .btn-delete:hover {
+    background: #2563eb;
+  }
+
+  #msg {
+    margin-bottom: 12px;
+    font-weight: 500;
+  }
+
+  #btn-modal {
+    margin-top: 10px;
+  }
+</style>
+
+<div id="msg"></div>
+<button onclick="openCategoryModal()">➕ Add Category</button>
+
+<!-- Modal -->
+<div id="categoryModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="modal-title">Add Category</h3>
+      <button onclick="closeCategoryModal()">❌</button>
+    </div>
+
+    <form id="category-form">
+      <input type="hidden" id="cat-id" />
+
+      <label>Name:</label>
+      <input type="text" id="cat-name" required />
+
+      <label>Description:</label>
+      <input type="text" id="cat-desc" />
+
+      <br />
+      <button id="btn-modal" type="submit">Save</button>
+      <button
+        id="btn-modal"
+        type="button"
+        class="btn-delete"
+        onclick="closeCategoryModal()"
+      >
+        Cancel
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- Categories Table -->
+<table id="categories">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Description</th>
+      <th>Created At</th>
+      <th>Updated At</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<script>
+  const API = `${API_BASE}/v1/categories`;
+
+  // Modal Controls
+  function openCategoryModal(id = "", name = "", desc = "") {
+    document.getElementById("modal-title").textContent = id
+      ? "Update Category"
+      : "Add Category";
+    document.getElementById("cat-id").value = id;
+    document.getElementById("cat-name").value = name;
+    document.getElementById("cat-desc").value = desc;
+    document.getElementById("categoryModal").style.display = "block";
+  }
+
+  function closeCategoryModal() {
+    document.getElementById("categoryModal").style.display = "none";
+    document.getElementById("category-form").reset();
+  }
+
+  // Load Categories
+  async function loadCategories() {
+    const msg = document.getElementById("msg");
+    msg.textContent = "Loading...";
+    msg.style.color = "black";
+
+    try {
+      const res = await fetch(API);
+      if (!res.ok) throw new Error("error getting categories");
+      const data = await res.json();
+
+      const tbody = document.querySelector("#categories tbody");
+      tbody.innerHTML = "";
+
+      if (!Array.isArray(data) || data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">No categories found</td></tr>`;
+        msg.textContent = "";
+        return;
+      }
+
+      data.forEach((cat) => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${cat.name}</td>
+          <td>${cat.desc || ""}</td>
+          <td>${cat.created_at}</td>
+          <td>${cat.updated_at}</td>
+          <td>
+            <button class="btn-edit" onclick="openCategoryModal('${cat.id}', '${
+          cat.name
+        }', '${cat.desc || ""}')">✏️ Update</button>
+            <button class="btn-delete" onclick="deleteCategory('${
+              cat.id
+            }')">🗑️ Delete</button>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+
+      msg.textContent = "";
+    } catch (err) {
+      msg.textContent = err.message;
+      msg.style.color = "red";
+    }
+  }
+
+  // Save Category
+  document
+    .getElementById("category-form")
+    .addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const id = document.getElementById("cat-id").value;
+      const name = document.getElementById("cat-name").value;
+      const desc = document.getElementById("cat-desc").value;
+
+      try {
+        let res;
+        if (id) {
+          res = await fetch(`${API}/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, desc }),
+          });
+        } else {
+          res = await fetch(API, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, desc }),
+          });
+        }
+
+        if (!res.ok) {
+          const errMsg = await res.json().catch(() => ({}));
+          throw new Error(errMsg.msg || "error saving category");
+        }
+
+        closeCategoryModal();
+        loadCategories();
+      } catch (err) {
+        alert(err.message);
+      }
+    });
+
+  // Delete Category
+  async function deleteCategory(id) {
+    if (!confirm("Are you sure you want to delete this category?")) return;
+    try {
+      const res = await fetch(`${API}/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const errMsg = await res.json().catch(() => ({}));
+        throw new Error(errMsg.msg || "Error deleting category");
+      }
+      loadCategories();
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  // Initial Load
+  loadCategories();
+</script>
+{{ end }}

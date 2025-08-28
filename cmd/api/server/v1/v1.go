@@ -6,11 +6,24 @@ import (
 	"net/http"
 
 	"github.com/amorindev/go-tmpl/internal/config"
+	minioClient "github.com/amorindev/go-tmpl/internal/minio"
 	mongoClient "github.com/amorindev/go-tmpl/internal/mongo"
-	"github.com/amorindev/go-tmpl/pkg/app/admin/api/handler"
+	adminHandler "github.com/amorindev/go-tmpl/pkg/app/admin/api/handler"
 	authMethodHandler "github.com/amorindev/go-tmpl/pkg/app/auth-methods/handler"
 	authMethodService "github.com/amorindev/go-tmpl/pkg/app/auth-methods/service"
+	categoryHandler "github.com/amorindev/go-tmpl/pkg/app/ecomm/category/api/handler"
+	categoryRepository "github.com/amorindev/go-tmpl/pkg/app/ecomm/category/repository/mongo"
+	categoryService "github.com/amorindev/go-tmpl/pkg/app/ecomm/category/service"
+	productHandler "github.com/amorindev/go-tmpl/pkg/app/ecomm/products/api/handler"
+	productRepository "github.com/amorindev/go-tmpl/pkg/app/ecomm/products/repository/mongo"
+	productService "github.com/amorindev/go-tmpl/pkg/app/ecomm/products/service"
+	variationHandler "github.com/amorindev/go-tmpl/pkg/app/ecomm/variations/api/handler"
+	varOptionRepository "github.com/amorindev/go-tmpl/pkg/app/ecomm/variations/repository/var-option/mongo"
+	variationRepository "github.com/amorindev/go-tmpl/pkg/app/ecomm/variations/repository/variation/mongo"
+	variationService "github.com/amorindev/go-tmpl/pkg/app/ecomm/variations/service"
 	userRepository "github.com/amorindev/go-tmpl/pkg/app/users/repository/mongo"
+	minioAdapter "github.com/amorindev/go-tmpl/pkg/file-storage/adapter/minio"
+	fileStgService "github.com/amorindev/go-tmpl/pkg/file-storage/service"
 )
 
 func New() http.Handler {
@@ -27,24 +40,56 @@ func New() http.Handler {
 	mongoDB := mongoConn.DB.Database(appEnvs.MongoInitDB)
 	mongoConn.Ping()
 
+	// Minio
+	minioC, err := minioClient.NewClient(appEnvs.MinioEndpoint, appEnvs.MinioAccessKey, appEnvs.MinioSecretKey, appEnvs.MinioUseSSL)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = minioC.CreateStorage(appEnvs.MinioBucketName)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	minioApt := minioAdapter.NewMinioAdt(minioC.Client, appEnvs.MinioBucketName)
+	fileStgSrv := fileStgService.NewFileStgSrv(minioApt)
+
 	// Collections
 	userColl := mongoDB.Collection("users")
+	categoryColl := mongoDB.Collection("categories")
+	variationColl := mongoDB.Collection("variations")
+	varOptionColl := mongoDB.Collection("var_options")
+	productColl := mongoDB.Collection("products")
 
 	// Repositories
 	userRepo := userRepository.NewUserRepo(mongoConn.DB, userColl)
+	categoryRepo := categoryRepository.NewCategoryRepo(mongoConn.DB, categoryColl)
+	variationRepo := variationRepository.NewVariationRepo(mongoConn.DB, variationColl)
+	varOptionRepo := varOptionRepository.NewVarOptionRepo(mongoConn.DB, varOptionColl)
+	productRepo := productRepository.NewProductRepo(mongoConn.DB, productColl)
 
 	// Indexes
-	err := userRepo.CreateIndexes()
+	err = userRepo.CreateIndexes()
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = productRepo.CreateIndexes()
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Services
 	authMethodSrv := authMethodService.NewAuthMethodSrv(userRepo)
+	categorySrv := categoryService.NewCategorySrv(categoryRepo)
+	variationSrv := variationService.NewVariationSrv(variationRepo, varOptionRepo)
+	productSrv := productService.NewProductSrv(productRepo, varOptionRepo, categoryRepo, fileStgSrv)
 
 	// Handler
 	// Note: all subsequent handlers should also be registered using v1
 	authMethodHandler.NewAuthMethodHandler(v1, authMethodSrv)
+	categoryHandler.NewCategoryHandler(v1, categorySrv)
+	variationHandler.NewVariationHandler(v1, variationSrv)
+	productHandler.NewProductHandler(v1, productSrv)
 
 	mux.HandleFunc("GET /ping", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -60,10 +105,10 @@ func New() http.Handler {
 	// Templates
 	// Redirects requests from "/admin" to the admin home page under API v1
 	mux.HandleFunc("/admin", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "/v1/admin/home", http.StatusFound)
+		http.Redirect(w, r, "/v1/admin/categories", http.StatusFound)
 	})
 
-	handler.NewAdminHandler(v1, appEnvs.ApiBaseUrl)
+	adminHandler.NewAdminHandler(v1, appEnvs.ApiBaseUrl)
 
 	return mux
 }
