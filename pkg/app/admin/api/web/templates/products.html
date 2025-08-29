@@ -303,7 +303,7 @@
       if (!res.ok) throw new Error("Error loading categories");
 
       const data = await res.json();
-      const categories = Array.isArray(data) ? data.categories : [];
+      const categories = Array.isArray(data) ? data : [];
 
       const select = document.getElementById("categorySelect");
       select.innerHTML = "<option value=''>-- select --</option>";
